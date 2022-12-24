@@ -1,0 +1,305 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>793</width>
+    <height>600</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>MainWindow</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <widget class="QTabWidget" name="tabWidget">
+    <property name="geometry">
+     <rect>
+      <x>0</x>
+      <y>0</y>
+      <width>791</width>
+      <height>571</height>
+     </rect>
+    </property>
+    <property name="currentIndex">
+     <number>0</number>
+    </property>
+    <widget class="QWidget" name="tab">
+     <attribute name="title">
+      <string>Tab 1</string>
+     </attribute>
+     <widget class="QLabel" name="label">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>10</y>
+        <width>121</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Descripter</string>
+      </property>
+     </widget>
+     <widget class="QTableView" name="table_descripteur">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>40</y>
+        <width>381</width>
+        <height>421</height>
+       </rect>
+      </property>
+      <property name="styleSheet">
+       <string notr="true">border-radius: 21px;
+background: #ffc3a3;
+box-shadow: inset 8px 8px 16px #bf927a,
+            inset -8px -8px 16px #fff4cc;
+</string>
+      </property>
+     </widget>
+     <widget class="QTableView" name="table_inverse">
+      <property name="geometry">
+       <rect>
+        <x>400</x>
+        <y>40</y>
+        <width>381</width>
+        <height>421</height>
+       </rect>
+      </property>
+      <property name="styleSheet">
+       <string notr="true">border-radius: 21px;
+background: #ffc3a3;
+box-shadow: inset 8px 8px 16px #bf927a,
+            inset -8px -8px 16px #fff4cc;</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_2">
+      <property name="geometry">
+       <rect>
+        <x>400</x>
+        <y>10</y>
+        <width>121</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Inverse</string>
+      </property>
+     </widget>
+     <widget class="QPlainTextEdit" name="text_recherche">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>500</y>
+        <width>461</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="styleSheet">
+       <string notr="true">border-radius: 50%;
+background: #95ee7c;
+box-shadow: inset 18px 18px 35px #6eb05c,
+            inset -18px -18px 35px #bcff9c;</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="bouton_recherche_terme">
+      <property name="geometry">
+       <rect>
+        <x>480</x>
+        <y>500</y>
+        <width>71</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="styleSheet">
+       <string notr="true">border-radius: 50%;
+background: #e0d06c;
+box-shadow:  32px 32px 62px #a69a50,
+             -32px -32px 62px #ffff88;</string>
+      </property>
+      <property name="text">
+       <string>Search</string>
+      </property>
+     </widget>
+     <widget class="QSpinBox" name="choix_docu">
+      <property name="geometry">
+       <rect>
+        <x>590</x>
+        <y>500</y>
+        <width>111</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="minimum">
+       <number>1</number>
+      </property>
+      <property name="maximum">
+       <number>1460</number>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="bouton_recherche_docu">
+      <property name="geometry">
+       <rect>
+        <x>710</x>
+        <y>500</y>
+        <width>71</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="styleSheet">
+       <string notr="true">border-radius: 50%;
+background: #e0d06c;
+box-shadow:  32px 32px 62px #a69a50,
+             -32px -32px 62px #ffff88;</string>
+      </property>
+      <property name="text">
+       <string>Search</string>
+      </property>
+     </widget>
+     <widget class="Line" name="line">
+      <property name="geometry">
+       <rect>
+        <x>570</x>
+        <y>470</y>
+        <width>3</width>
+        <height>61</height>
+       </rect>
+      </property>
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_3">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>470</y>
+        <width>251</width>
+        <height>21</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Search by Words</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_4">
+      <property name="geometry">
+       <rect>
+        <x>590</x>
+        <y>470</y>
+        <width>101</width>
+        <height>20</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Search by Document</string>
+      </property>
+     </widget>
+    </widget>
+    <widget class="QWidget" name="tab_2">
+     <attribute name="title">
+      <string>Tab 2</string>
+     </attribute>
+     <widget class="QTableView" name="tableView_7">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>40</y>
+        <width>381</width>
+        <height>421</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_13">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>470</y>
+        <width>251</width>
+        <height>21</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Boolean Query Search</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_14">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>10</y>
+        <width>121</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Descripter</string>
+      </property>
+     </widget>
+     <widget class="QPlainTextEdit" name="plainTextEdit_4">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>500</y>
+        <width>691</width>
+        <height>31</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="pushButton_7">
+      <property name="geometry">
+       <rect>
+        <x>710</x>
+        <y>500</y>
+        <width>71</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Search</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_15">
+      <property name="geometry">
+       <rect>
+        <x>400</x>
+        <y>10</y>
+        <width>121</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Inverse</string>
+      </property>
+     </widget>
+     <widget class="QTableView" name="tableView_8">
+      <property name="geometry">
+       <rect>
+        <x>400</x>
+        <y>40</y>
+        <width>381</width>
+        <height>421</height>
+       </rect>
+      </property>
+     </widget>
+    </widget>
+   </widget>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>793</width>
+     <height>21</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
