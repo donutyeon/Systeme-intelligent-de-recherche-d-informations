@@ -12,6 +12,8 @@ warnings.filterwarnings('ignore')
 import argparse
 import timeit
 from ir_system import IRSystem
+import json 
+
 def load_data(path):
     
     
@@ -37,8 +39,8 @@ def load_data(path):
         elif l.startswith(".T") or l.startswith(".W"):
             doc_text += l.strip()[3:] + " "
 
-    print(f"Number of documents = {len(doc_set)}")
-    print(doc_set["1"]) 
+    # print(f"Number of documents = {len(doc_set)}")
+    # print(doc_set["1"]) 
     
     
     doc_set = {int(id):doc for (id,doc) in doc_set.items()}
@@ -57,24 +59,45 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Information Retrieval System Configuration')
     return parser.parse_args()
 
-def main():
-    args = parse_args()
-    ir = IRSystem(doc_set, stop_words=stop_words)
+def search_with_query(query):
+    # doc_set= load_data('documents')
+    # with open('boolean_data.json', 'w') as fp:
+    #     json.dump(doc_set, fp)
+    with open('boolean_data.json', 'r') as fp:
+        doc_set = json.load(fp)
+    ExpReg = nltk. RegexpTokenizer('(?:[A-Za-z]\.)+|\d+(?:\.\d+)?%?|\w+(?:\-\w+)*')
+    MotsVides = nltk.corpus.stopwords.words('english')
+    Porter = nltk.PorterStemmer()
+    Lancaster = nltk.LancasterStemmer()
 
-    while True:
-        query = 'information AND classification OR NOT title AND computers'
+    stop_words = ['is', 'a', 'for', 'the', 'of']
+    # args = parse_args()
+    # print(args)
+    ir = IRSystem(doc_set, stop_words=MotsVides)
+    start = timeit.default_timer()
+    results = ir.process_query(query)
+    stop = timeit.default_timer()
+    
+    return results
 
-        start = timeit.default_timer()
-        results = ir.process_query(query)
-        stop = timeit.default_timer()
-        if results is not None:
-            print ('Processing time: {:.5} secs'.format(stop - start))
-            print('\nDoc IDS: ')
-            print(results)
-        print()
+# def main():
+#     args = parse_args()
+#     ir = IRSystem(doc_set, stop_words=stop_words)
 
-if __name__ == '__main__':
-    try:
-        main()
-    except KeyboardInterrupt as e:
-        print('EXIT')
+#     while True:
+#         query = 'information AND classification OR NOT title AND computers'
+
+#         start = timeit.default_timer()
+#         results = ir.process_query(query)
+#         stop = timeit.default_timer()
+#         if results is not None:
+#             print ('Processing time: {:.5} secs'.format(stop - start))
+#             print('\nDoc IDS: ')
+#             print(results)
+#         print()
+
+# if __name__ == '__main__':
+#     try:
+#         main()
+#     except KeyboardInterrupt as e:
+#         print('EXIT')

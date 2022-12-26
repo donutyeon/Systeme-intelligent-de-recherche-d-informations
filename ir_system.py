@@ -14,7 +14,7 @@ class IRSystem():
         self._docs = docs
         self._stemmer = nltk.stem.porter.PorterStemmer()
         self._inverted_index = self._preprocess_corpus(stop_words)
-        self._print_inverted_index()
+        #self._print_inverted_index()
 
     def _preprocess_corpus(self, stop_words):
         index = {}
