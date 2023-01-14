@@ -12,6 +12,7 @@ import seaborn as sns
 
 from sklearn.decomposition import PCA
 from sklearn import preprocessing
+import random
 
 class MachineLearning():
     def load_data(self, path):
@@ -88,7 +89,7 @@ class MachineLearning():
         return doc_set, qry_set, rel_set
 
     
-    def init(self):
+    def __init__(self):
             self.ExpReg = nltk. RegexpTokenizer('(?:[A-Za-z]\.)+|\d+(?:\.\d+)?%?|\w+(?:\-\w+)*')
             self.MotsVides = nltk.corpus.stopwords.words('english')
             self.Porter = nltk.PorterStemmer()
@@ -180,7 +181,7 @@ class MachineLearning():
         return final
 
 
-    ## MACHINE LEARNING FUNCTIONS
+    ## MACHINE LEARNING CLASSES
 
     class DBSCAN: 
         def __init__(self, eps, min_pts, data):
@@ -313,6 +314,29 @@ class MachineLearning():
         def accuracy(self, y_test, y_pred):
             accuracy = np.sum(y_test == y_pred) / len(y_test)
             return accuracy
+        
+        def confusion_matrix(self, y_true, y_pred):
+            tp = np.sum(y_true * y_pred)
+            fn = np.sum(y_true * (1 - y_pred))
+            fp = np.sum((1 - y_true) * y_pred)
+            tn = np.sum((1 - y_true) * (1 - y_pred))
+            return np.array([[tp, fn], [fp, tn]])
+
+        def precision(self, y_test, y_pred):
+            cm = self.confusion_matrix(y_test, y_pred)
+            precision = np.diag(cm) / np.sum(cm, axis=0)
+            return precision
+        
+        def recall(self, y_test, y_pred):
+            cm = self.confusion_matrix(y_test, y_pred)
+            recall = np.diag(cm) / np.sum(cm, axis=1)
+            return recall
+        
+        def f1_score(self, y_test, y_pred):
+            precision = self.precision(y_test, y_pred)
+            recall = self.recall(y_test, y_pred)
+            f1 = 2 * (precision * recall) / (precision + recall)
+            return f1
 
         def visualize(self, y_true, y_pred, target):
             
@@ -332,7 +356,8 @@ class MachineLearning():
             ax[1].tick_params(labelsize=12)
             ax[0].set_title("True values", fontsize=18)
             ax[1].set_title("Predicted values", fontsize=18)
-            plt.show()
+            # plt.show()
+            return fig
 
     def roc_curve(self, stemmer,query,measure):
         df_freqs_poids_porter= pd.read_csv('freq_poids_porter.csv')
@@ -611,3 +636,17 @@ class MachineLearning():
                 print('Erreur de mesure')
         else : 
             print('Erreur de stemmer')
+
+    def train_test_split(self, df, test_size):
+            # make sure it is a float and get the number of instances in the test set
+            if isinstance(test_size, float):
+                    test_size = round(test_size * len(df))
+            # get the indices for the test set
+            indices = df.index.tolist()
+            # choose them randomly
+            test_indices = random.sample(population=indices, k=test_size)
+            # separate into test and train
+            test_df = df.loc[test_indices]
+            train_df = df.drop(test_indices)
+            
+            return train_df.iloc[:,:-1], test_df.iloc[:,:-1], train_df.iloc[:,-1], test_df.iloc[:,-1]
