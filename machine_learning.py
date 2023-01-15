@@ -315,12 +315,22 @@ class MachineLearning():
             accuracy = np.sum(y_test == y_pred) / len(y_test)
             return accuracy
         
+        # def confusion_matrix(self, y_true, y_pred):
+        #     mask = y_true[y_true == -1.0]
+        #     y_true.drop(mask.index, inplace=True)
+        #     y_pred.drop(mask.index, inplace=True)
+        #     tp = np.sum(y_true * y_pred)
+        #     fn = np.sum(y_true * (1 - y_pred))
+        #     fp = np.sum((1 - y_true) * y_pred)
+        #     tn = np.sum((1 - y_true) * (1 - y_pred))
+        #     return np.array([[tp, fn], [fp, tn]])
+
+        #confusion matrix for multiclass
         def confusion_matrix(self, y_true, y_pred):
-            tp = np.sum(y_true * y_pred)
-            fn = np.sum(y_true * (1 - y_pred))
-            fp = np.sum((1 - y_true) * y_pred)
-            tn = np.sum((1 - y_true) * (1 - y_pred))
-            return np.array([[tp, fn], [fp, tn]])
+            cm = np.zeros((self.count, self.count))
+            for i in range(len(y_true)):
+                cm[int(y_true[i])][int(y_pred[i])] += 1
+            return cm
 
         def precision(self, y_test, y_pred):
             cm = self.confusion_matrix(y_test, y_pred)
