@@ -18,6 +18,11 @@ import timeit
 
 from ir_system import IRSystem
 
+from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import normalize
+from sklearn.decomposition import PCA
+from sklearn import preprocessing
+
 class MachineLearning():
     def load_data(self, path):
         
@@ -384,6 +389,7 @@ class MachineLearning():
             # plt.show()
             return fig
 
+
     def roc_curve(self, stemmer,query,measure):
         df_freqs_poids_porter= pd.read_csv('freq_poids_porter.csv')
         df_freqs_poids_lan= pd.read_csv('freq_poids_lancaster.csv')
@@ -413,11 +419,14 @@ class MachineLearning():
             for doc in docs.index+1:
                 docs['Distance'].loc[doc-1] = self._distance(pca_df_normalized_queries.loc[query-1,0:1],docs.loc[doc-1][0:2].values)
                     #r = r.append({'doc':doc,'distance':_distance(pca_df_normalized_queries.loc[qry-1,0:1],p.loc[doc-1,0:1])}, ignore_index=True)
-            docs = docs.sort_values(by=['Distance'], ascending=True).head(10)
+            pr = docs.sort_values(by=['Distance'], ascending=True)
+            docs = pr.head(10)
             try:
                 docs['Pertinent']= docs['Document'].apply(lambda x: 'Oui' if x in self.rel_set[query] else 'Non')
+                pr['Pertinent']= pr['Document'].apply(lambda x: 'Oui' if x in self.rel_set[query] else 'Non')
             except:
                 docs['Pertinent']= 'Non'
+                pr['Pertinent']= 'Non'
             docs['Precision']=0.0
             docs['Rappel']=0.0
             docs['F-Mesure']=0.0
@@ -452,10 +461,28 @@ class MachineLearning():
                     docs['Precision_Interpolée'].iloc[i]=jac['Precision'].max()
                 docs['F-Mesure_Interpolée'].iloc[i] = 2*docs['Precision_Interpolée'].iloc[i]*docs['Rappel_Interpolée'].iloc[i]/(docs['Precision_Interpolée'].iloc[i]+docs['Rappel_Interpolée'].iloc[i])
                 k+=1
-            return docs        
+                matrix = np.zeros((2,2),int)
+                matrix[0][0] += p
+                try:
+                    temp = [doc not in np.array(docs.index+1) for doc in np.array(self.rel_set[query])]
+                    matrix[0][1] += temp.count(True)
+                except: 
+                    matrix[0][1] += 0
+                try:
+                    temp = [doc not in np.array(self.rel_set[query]) for doc in np.array(pr[(pr['Pertinent']=='Non')].index+1)]
+                    matrix[1][0] += temp.count(True)
+                except:
+                    matrix[1][0] += len(np.array(pr[(pr['Pertinent']=='Non')].index+1))
+                try:
+                    temp = [doc not in np.array(self.rel_set[query]) for doc in np.array(pca_df_dbscan[pca_df_dbscan['label'] != pca_df_normalized_queries.loc[0]['label']].index+1)]
+                    matrix[1][1] += temp.count(True)
+                except:
+                    matrix[1][1] += len(np.array(pca_df_dbscan[pca_df_dbscan['label'] != pca_df_normalized_queries.loc[0]['label']].index+1))
+            return docs , matrix    
         if stemmer=='P':
             if measure=='Produit Scalaire':
-                produit = self.produit_scalaire(df_freqs_poids_porter,self.qry_set[query],'P')[1].sort_values(by='Poid',ascending=False).reset_index(drop=True).head(10)
+                pr = self.produit_scalaire(df_freqs_poids_porter,self.qry_set[query],'P')[1].sort_values(by='Poid',ascending=False).reset_index(drop=True)
+                produit = pr.head(10)
                 try:
                     produit['Pertinent']= produit['Document'].apply(lambda x: 'Oui' if x in self.rel_set[query] else 'Non')
                 except:
@@ -488,10 +515,31 @@ class MachineLearning():
                     else:
                         produit['Precision_Interpolée'].iloc[i]=cos['Precision'].max()
                     produit['F-measure_Interpolée'].iloc[i]=2*produit['Precision_Interpolée'].iloc[i]*produit['Rappel_Interpolée'].iloc[i]/(produit['Precision_Interpolée'].iloc[i]+produit['Rappel_Interpolée'].iloc[i])
-                    
-                return produit
+                matrix = np.zeros((2,2),int)
+                try:
+                    l = [a in self.rel_set[query] for a in pr[pr['Poid']!=0]['Document'] ]
+                    matrix[0][0] = l.count(True)
+                except:
+                    matrix[0][0] = 0
+                try:
+                    l = [a in self.rel_set[query] for a in pr[pr['Poid']==0]['Document'] ]
+                    matrix[0][1] = l.count(True)
+                except:
+                    matrix[0][1] = 0
+                try:
+                    l = [a not in self.rel_set[query] for a in pr[pr['Poid']!=0]['Document'] ]
+                    matrix[1][0] = l.count(True)
+                except:
+                    matrix[1][0] = len(pr[pr['Poid']!=0]['Document'])
+                try:
+                    l = [a not in self.rel_set[query] for a in pr[pr['Poid']==0]['Document'] ]
+                    matrix[1][1] = l.count(True)
+                except:
+                    matrix[1][1] = len(pr[pr['Poid']==0]['Document'])
+                return produit,matrix
             elif measure == 'Cosine':
-                cosine = self.Cosine(df_freqs_poids_porter,self.qry_set[query],'P').head(10)
+                co = self.Cosine(df_freqs_poids_porter,self.qry_set[query],'P')
+                cosine = co.copy().head(10)
                 try:
                     cosine['Pertinent'] = cosine['Document'].apply(lambda x: 'Oui' if x in self.rel_set[query] else 'Non')
                 except:
@@ -524,9 +572,31 @@ class MachineLearning():
                     else:
                         cosine['Precision_Interpolée'].iloc[i]=cos['Precision'].max()
                     cosine['F-measure_Interpolée'].iloc[i]=2*cosine['Precision_Interpolée'].iloc[i]*cosine['Rappel_Interpolée'].iloc[i]/(cosine['Precision_Interpolée'].iloc[i]+cosine['Rappel_Interpolée'].iloc[i])
-                return cosine
+                    matrix = np.zeros((2,2),int)
+                    try:
+                        l = [a in self.rel_set[query] for a in co[co['Mesure Cosine']!=0]['Document'] ]
+                        matrix[0][0] = l.count(True)
+                    except:
+                        matrix[0][0] = 0
+                    try:
+                        l = [a in self.rel_set[query] for a in co[co['Mesure Cosine']==0]['Document'] ]
+                        matrix[0][1] = l.count(True)
+                    except:
+                        matrix[0][1] = 0
+                    try:
+                        l = [a not in self.rel_set[query] for a in co[co['Mesure Cosine']!=0]['Document'] ]
+                        matrix[1][0] = l.count(True)
+                    except:
+                        matrix[1][0] = len(c[c['Mesure Cosine']!=0]['Document'])
+                    try:
+                        l = [a not in self.rel_set[query] for a in co[co['Mesure Cosine']==0]['Document'] ]
+                        matrix[1][1] = l.count(True)
+                    except:
+                        matrix[1][1] = len(c[c['Mesure Cosine']==0]['Document'])
+                return cosine , matrix
             elif measure == 'Jaccard':
-                jaccard = self.Jaccard(df_freqs_poids_porter,self.qry_set[query],'P').head(10)
+                jr = self.Jaccard(df_freqs_poids_porter,self.qry_set[query],'P')
+                jaccard = jr.head(10)
                 try:
                     jaccard['Pertinent'] = jaccard['Document'].apply(lambda x: 'Oui' if x in self.rel_set[query] else 'Non')
                 except:
@@ -559,9 +629,31 @@ class MachineLearning():
                     else:
                         jaccard['Precision_Interpolée'].iloc[i]=jac['Precision'].max()
                     jaccard['F-measure_Interpolée'].iloc[i]=2*jaccard['Precision_Interpolée'].iloc[i]*jaccard['Rappel_Interpolée'].iloc[i]/(jaccard['Precision_Interpolée'].iloc[i]+jaccard['Rappel_Interpolée'].iloc[i])
-                return jaccard
+                matrix = np.zeros((2,2),int)
+                try:
+                    l = [a in self.rel_set[query] for a in jr[jr['Mesure Jaccard']!=0]['Document'] ]
+                    matrix[0][0] = l.count(True)
+                except:
+                    matrix[0][0] = 0
+                try:
+                    l = [a in self.rel_set[query] for a in jr[jr['Mesure Jaccard']==0]['Document'] ]
+                    matrix[0][1] = l.count(True)
+                except:
+                    matrix[0][1] = 0
+                try:
+                    l = [a not in self.rel_set[query] for a in jr[jr['Mesure Jaccard']!=0]['Document'] ]
+                    matrix[1][0] = l.count(True)
+                except:
+                    matrix[1][0] = len(c[c['Mesure Jaccard']!=0]['Document'])
+                try:
+                    l = [a not in self.rel_set[query] for a in jr[jr['Mesure Jaccard']==0]['Document'] ]
+                    matrix[1][1] = l.count(True)
+                except:
+                    matrix[1][1] = len(jr[jr['Mesure Jaccard']==0]['Document'])
+                return jaccard, matrix
             elif measure== 'BM25':
-                bm25 = self.BM25(df_freqs_poids_porter,self.qry_set[query],'P').head(10)
+                bmm = self.BM25(df_freqs_poids_porter,self.qry_set[query],'P')
+                bm25 = bmm.head(10)
                 try:
                     bm25['Pertinent'] = bm25['Document'].apply(lambda x: 'Oui' if x in self.rel_set[query] else 'Non')
                 except:
@@ -594,12 +686,35 @@ class MachineLearning():
                     else:
                         bm25['Precision_Interpolée'].iloc[i]=bm['Precision'].max()
                     bm25['F-measure_Interpolée'].iloc[i]=2*bm25['Precision_Interpolée'].iloc[i]*bm25['Rappel_Interpolée'].iloc[i]/(bm25['Precision_Interpolée'].iloc[i]+bm25['Rappel_Interpolée'].iloc[i])
-                return bm25
+                matrix = np.zeros((2,2),int)
+                try:
+                    l = [a in self.rel_set[query] for a in bmm[bmm['Probabilite BM25']!=0]['Document'] ]
+                    matrix[0][0] = l.count(True)
+                except:
+                    matrix[0][0] = 0
+                try:
+                    l = [a in self.rel_set[query] for a in bmm[bmm['Probabilite BM25']==0]['Document'] ]
+                    matrix[0][1] = l.count(True)
+                except:
+                    matrix[0][1] = 0
+                try:
+                    l = [a not in self.rel_set[query] for a in bmm[bmm['Probabilite BM25']!=0]['Document'] ]
+                    matrix[1][0] = l.count(True)
+                except:
+                    matrix[1][0] = len(c[c['Probabilite BM25']!=0]['Document'])
+                try:
+                    l = [a not in self.rel_set[query] for a in bmm[bmm['Probabilite BM25']==0]['Document'] ]
+                    matrix[1][1] = l.count(True)
+                except:
+                    matrix[1][1] = len(bmm[bmm['Probabilite BM25']==0]['Document'])
+                
+                return bm25, matrix
             else :
                 print('Erreur de mesure')
         elif stemmer=='L':
             if measure=='Produit Scalaire':
-                produit = self.produit_scalaire(df_freqs_poids_lan,self.qry_set[query],'L')[1].sort_values(by='Poid',ascending=False).reset_index(drop=True).head(10)
+                pr = self.produit_scalaire(df_freqs_poids_lan,self.qry_set[query],'L')[1].sort_values(by='Poid',ascending=False).reset_index(drop=True)
+                produit = pr.head(10)
                 try:
                     produit['Pertinent'] = produit['Document'].apply(lambda x: 'Oui' if x in self.rel_set[query] else 'Non')
                 except:
@@ -629,9 +744,31 @@ class MachineLearning():
                     else:
                         produit['Precision_Interpolée'].iloc[i]=cos['Precision'].max()
                     produit['F-measure_Interpolée'].iloc[i]=2*produit['Precision_Interpolée'].iloc[i]*produit['Rappel_Interpolée'].iloc[i]/(produit['Precision_Interpolée'].iloc[i]+produit['Rappel_Interpolée'].iloc[i])
-                    return produit
+                matrix = np.zeros((2,2),int)
+                try:
+                    l = [a in self.rel_set[query] for a in pr[pr['Poid']!=0]['Document'] ]
+                    matrix[0][0] = l.count(True)
+                except:
+                    matrix[0][0] = 0
+                try:
+                    l = [a in self.rel_set[query] for a in pr[pr['Poid']==0]['Document'] ]
+                    matrix[0][1] = l.count(True)
+                except:
+                    matrix[0][1] = 0
+                try:
+                    l = [a not in self.rel_set[query] for a in pr[pr['Poid']!=0]['Document'] ]
+                    matrix[1][0] = l.count(True)
+                except:
+                    matrix[1][0] = len(pr[pr['Poid']!=0]['Document'])
+                try:
+                    l = [a not in self.rel_set[query] for a in pr[pr['Poid']==0]['Document'] ]
+                    matrix[1][1] = l.count(True)
+                except:
+                    matrix[1][1] = len(pr[pr['Poid']==0]['Document'])
+                return produit, matrix
             elif measure=='Cosine':
-                cosine = self.Cosine(df_freqs_poids_lan,self.qry_set[query],'L').head(10)
+                co = self.Cosine(df_freqs_poids_lan,self.qry_set[query],'L')
+                cosine = co.head(10)
                 try:
                     cosine['Pertinent'] = cosine['Document'].apply(lambda x: 'Oui' if x in self.rel_set[query] else 'Non')
                 except:
@@ -664,9 +801,31 @@ class MachineLearning():
                     else:
                         cosine['Precision_Interpolée'].iloc[i]=cos['Precision'].max()
                     cosine['F-measure_Interpolée'].iloc[i]=2*cosine['Precision_Interpolée'].iloc[i]*cosine['Rappel_Interpolée'].iloc[i]/(cosine['Precision_Interpolée'].iloc[i]+cosine['Rappel_Interpolée'].iloc[i])
-                return cosine
+                matrix = np.zeros((2,2),int)
+                try:
+                    l = [a in self.rel_set[query] for a in co[co['Mesure Cosine']!=0]['Document'] ]
+                    matrix[0][0] = l.count(True)
+                except:
+                    matrix[0][0] = 0
+                try:
+                    l = [a in self.rel_set[query] for a in co[co['Mesure Cosine']==0]['Document'] ]
+                    matrix[0][1] = l.count(True)
+                except:
+                    matrix[0][1] = 0
+                try:
+                    l = [a not in self.rel_set[query] for a in co[co['Mesure Cosine']!=0]['Document'] ]
+                    matrix[1][0] = l.count(True)
+                except:
+                    matrix[1][0] = len(c[c['Mesure Cosine']!=0]['Document'])
+                try:
+                    l = [a not in self.rel_set[query] for a in co[co['Mesure Cosine']==0]['Document'] ]
+                    matrix[1][1] = l.count(True)
+                except:
+                    matrix[1][1] = len(c[c['Mesure Cosine']==0]['Document'])
+                return cosine , matrix
             elif measure == 'Jaccard':
-                jaccard = self.Jaccard(df_freqs_poids_lan,self.qry_set[query],'L').head(10)
+                jr = self.Jaccard(df_freqs_poids_lan,self.qry_set[query],'L')
+                jaccard = jr.head(10)
                 try:
                     jaccard['Pertinent'] = jaccard['Document'].apply(lambda x: 'Oui' if x in self.rel_set[query] else 'Non')
                 except:
@@ -699,9 +858,31 @@ class MachineLearning():
                     else:
                         jaccard['Precision_Interpolée'].iloc[i]=jac['Precision'].max()
                     jaccard['F-measure_Interpolée'].iloc[i]=2*jaccard['Precision_Interpolée'].iloc[i]*jaccard['Rappel_Interpolée'].iloc[i]/(jaccard['Precision_Interpolée'].iloc[i]+jaccard['Rappel_Interpolée'].iloc[i])
-                return jaccard
+                matrix = np.zeros((2,2),int)
+                try:
+                    l = [a in self.rel_set[query] for a in jr[jr['Mesure Jaccard']!=0]['Document'] ]
+                    matrix[0][0] = l.count(True)
+                except:
+                    matrix[0][0] = 0
+                try:
+                    l = [a in self.rel_set[query] for a in jr[jr['Mesure Jaccard']==0]['Document'] ]
+                    matrix[0][1] = l.count(True)
+                except:
+                    matrix[0][1] = 0
+                try:
+                    l = [a not in self.rel_set[query] for a in jr[jr['Mesure Jaccard']!=0]['Document'] ]
+                    matrix[1][0] = l.count(True)
+                except:
+                    matrix[1][0] = len(c[c['Mesure Jaccard']!=0]['Document'])
+                try:
+                    l = [a not in self.rel_set[query] for a in jr[jr['Mesure Jaccard']==0]['Document'] ]
+                    matrix[1][1] = l.count(True)
+                except:
+                    matrix[1][1] = len(jr[jr['Mesure Jaccard']==0]['Document'])
+                return jaccard, matrix
             elif measure== 'BM25':
-                bm25 = self.BM25(df_freqs_poids_lan,self.qry_set[query],'L').head(10)
+                bmm = self.BM25(df_freqs_poids_lan,self.qry_set[query],'L')
+                bm25 = bmm.head(10)
                 try:
                     bm25['Pertinent'] = bm25['Document'].apply(lambda x: 'Oui' if x in self.rel_set[query] else 'Non')
                 except:
@@ -734,25 +915,47 @@ class MachineLearning():
                     else:
                         bm25['Precision_Interpolée'].iloc[i]=bm['Precision'].max()
                     bm25['F-measure_Interpolée'].iloc[i]=2*bm25['Precision_Interpolée'].iloc[i]*bm25['Rappel_Interpolée'].iloc[i]/(bm25['Precision_Interpolée'].iloc[i]+bm25['Rappel_Interpolée'].iloc[i])
-                return bm25
+                matrix = np.zeros((2,2),int)
+                try:
+                    l = [a in self.rel_set[query] for a in bmm[bmm['Probabilite BM25']!=0]['Document'] ]
+                    matrix[0][0] = l.count(True)
+                except:
+                    matrix[0][0] = 0
+                try:
+                    l = [a in self.rel_set[query] for a in bmm[bmm['Probabilite BM25']==0]['Document'] ]
+                    matrix[0][1] = l.count(True)
+                except:
+                    matrix[0][1] = 0
+                try:
+                    l = [a not in self.rel_set[query] for a in bmm[bmm['Probabilite BM25']!=0]['Document'] ]
+                    matrix[1][0] = l.count(True)
+                except:
+                    matrix[1][0] = len(c[c['Probabilite BM25']!=0]['Document'])
+                try:
+                    l = [a not in self.rel_set[query] for a in bmm[bmm['Probabilite BM25']==0]['Document'] ]
+                    matrix[1][1] = l.count(True)
+                except:
+                    matrix[1][1] = len(bmm[bmm['Probabilite BM25']==0]['Document'])
+                
+                return bm25, matrix
             else : 
                 print('Erreur de mesure')
         else : 
             print('Erreur de stemmer')
-    
-    def train_test_split(self, df, test_size):
-            # make sure it is a float and get the number of instances in the test set
-            if isinstance(test_size, float):
-                    test_size = round(test_size * len(df))
-            # get the indices for the test set
-            indices = df.index.tolist()
-            # choose them randomly
-            test_indices = random.sample(population=indices, k=test_size)
-            # separate into test and train
-            test_df = df.loc[test_indices]
-            train_df = df.drop(test_indices)
-            
-            return train_df.iloc[:,:-1], test_df.iloc[:,:-1], train_df.iloc[:,-1], test_df.iloc[:,-1]
+        
+        def train_test_split(self, df, test_size):
+                # make sure it is a float and get the number of instances in the test set
+                if isinstance(test_size, float):
+                        test_size = round(test_size * len(df))
+                # get the indices for the test set
+                indices = df.index.tolist()
+                # choose them randomly
+                test_indices = random.sample(population=indices, k=test_size)
+                # separate into test and train
+                test_df = df.loc[test_indices]
+                train_df = df.drop(test_indices)
+                
+                return train_df.iloc[:,:-1], test_df.iloc[:,:-1], train_df.iloc[:,-1], test_df.iloc[:,-1]
 
     def boolean(self, query,stemmer):
         stop_words = ['is', 'a', 'for', 'the', 'of']
