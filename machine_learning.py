@@ -943,19 +943,19 @@ class MachineLearning():
         else : 
             print('Erreur de stemmer')
         
-        def train_test_split(self, df, test_size):
-                # make sure it is a float and get the number of instances in the test set
-                if isinstance(test_size, float):
-                        test_size = round(test_size * len(df))
-                # get the indices for the test set
-                indices = df.index.tolist()
-                # choose them randomly
-                test_indices = random.sample(population=indices, k=test_size)
-                # separate into test and train
-                test_df = df.loc[test_indices]
-                train_df = df.drop(test_indices)
-                
-                return train_df.iloc[:,:-1], test_df.iloc[:,:-1], train_df.iloc[:,-1], test_df.iloc[:,-1]
+    def train_test_split(self, df, test_size):
+            # make sure it is a float and get the number of instances in the test set
+            if isinstance(test_size, float):
+                    test_size = round(test_size * len(df))
+            # get the indices for the test set
+            indices = df.index.tolist()
+            # choose them randomly
+            test_indices = random.sample(population=indices, k=test_size)
+            # separate into test and train
+            test_df = df.loc[test_indices]
+            train_df = df.drop(test_indices)
+            
+            return train_df.iloc[:,:-1], test_df.iloc[:,:-1], train_df.iloc[:,-1], test_df.iloc[:,-1]
 
     def boolean(self, query,stemmer):
         stop_words = ['is', 'a', 'for', 'the', 'of']
