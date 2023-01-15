@@ -14,6 +14,10 @@ from sklearn.decomposition import PCA
 from sklearn import preprocessing
 import random
 
+import timeit
+
+from ir_system import IRSystem
+
 class MachineLearning():
     def load_data(self, path):
         
@@ -94,6 +98,9 @@ class MachineLearning():
             self.MotsVides = nltk.corpus.stopwords.words('english')
             self.Porter = nltk.PorterStemmer()
             self.Lancaster = nltk.LancasterStemmer()
+
+            self.df_freqs_poids_porter = pd.read_csv('freq_poids_porter.csv')
+            self.df_freqs_poids_lan = pd.read_csv('freq_poids_lancaster.csv')
 
             self.doc_set, self.qry_set, self.rel_set = self.load_data('documents')
 
@@ -180,7 +187,15 @@ class MachineLearning():
 
         return final
 
-
+    def _distance(self, p1, p2):
+            result = 0
+            for i in range(len(p1)):
+                if(type(p1[i]) == str or type(p2[i]) == str):
+                    if(p1[i] != p2[i]):
+                        result += 1
+                else : result += (p1[i] - p2[i]) ** 2
+            return math.sqrt(result)
+            #return math.sqrt(sum([(a - b) ** 2 for a, b in zip(p1, p2)]))
     ## MACHINE LEARNING CLASSES
 
     class DBSCAN: 
@@ -393,7 +408,16 @@ class MachineLearning():
             pca_df_dbscan = pd.read_csv('pca_df_dbscan.csv').drop(columns=['Unnamed: 0'])
             docs = pca_df_dbscan[pca_df_dbscan['label'] == pca_df_normalized_queries.loc[query-1]['label']]
             docs['Document']=docs.index+1
-            docs['Pertinent']= docs['Document'].apply(lambda x: 'Oui' if x in self.rel_set[query] else 'Non')
+            docs['Distance']=np.nan
+            cols = ['doc','distance']
+            for doc in docs.index+1:
+                docs['Distance'].loc[doc-1] = self._distance(pca_df_normalized_queries.loc[query-1,0:1],docs.loc[doc-1][0:2].values)
+                    #r = r.append({'doc':doc,'distance':_distance(pca_df_normalized_queries.loc[qry-1,0:1],p.loc[doc-1,0:1])}, ignore_index=True)
+            docs = docs.sort_values(by=['Distance'], ascending=True).head(10)
+            try:
+                docs['Pertinent']= docs['Document'].apply(lambda x: 'Oui' if x in self.rel_set[query] else 'Non')
+            except:
+                docs['Pertinent']= 'Non'
             docs['Precision']=0.0
             docs['Rappel']=0.0
             docs['F-Mesure']=0.0
@@ -405,248 +429,317 @@ class MachineLearning():
                 p=docs['Pertinent'].value_counts()['Oui']
             except:
                 p=0
-            print(p)
-            for i in docs['Document']:
-                if docs['Pertinent'][i-1] == 'Oui':
+            
+            for i in range(0,10):
+                if docs['Pertinent'].iloc[i] == 'Oui':
                     c+=1
-                docs['Precision'][i-1] = c/(i+1)
+                docs['Precision'].iloc[i] = c/(i+1)
                 try:
-                    docs['Rappel'][i-1] = c/p
+                    docs['Rappel'].iloc[i] = c/p
                 except:
-                    docs['Rappel'][i-1] = 0
-                docs['F-Mesure'][i-1] = 2*docs['Precision'][i-1]*docs['Rappel'][i-1]/(docs['Precision'][i-1]+docs['Rappel'][i-1])
+                    docs['Rappel'].iloc[i] = 0
+                docs['F-Mesure'].iloc[i] = 2*docs['Precision'].iloc[i]*docs['Rappel'].iloc[i]/(docs['Precision'].iloc[i]+docs['Rappel'].iloc[i])
             docs['Precision_Interpolée'] = 0.0
             docs['Rappel_Interpolée'] = 0.0
             docs['F-Mesure_Interpolée'] = 0.0
             k=0
-            for i in docs['Document']:
-                docs['Rappel_Interpolée'][i-1]=k/10
-                jac= docs[docs['Rappel_Interpolée'][i-1] <= docs['Rappel']]
+            for i in range(0,10):
+                docs['Rappel_Interpolée'].iloc[i]=k/10
+                jac= docs[docs['Rappel_Interpolée'].iloc[i] <= docs['Rappel']]
                 if jac.empty:
-                    docs['Precision_Interpolée'][i-1]=0
+                    docs['Precision_Interpolée'].iloc[i]=0
                 else:
-                    docs['Precision_Interpolée'][i-1]=jac['Precision'].max()
-                docs['F-Mesure_Interpolée'][i-1] = 2*docs['Precision_Interpolée'][i-1]*docs['Rappel_Interpolée'][i-1]/(docs['Precision_Interpolée'][i-1]+docs['Rappel_Interpolée'][i-1])
+                    docs['Precision_Interpolée'].iloc[i]=jac['Precision'].max()
+                docs['F-Mesure_Interpolée'].iloc[i] = 2*docs['Precision_Interpolée'].iloc[i]*docs['Rappel_Interpolée'].iloc[i]/(docs['Precision_Interpolée'].iloc[i]+docs['Rappel_Interpolée'].iloc[i])
                 k+=1
             return docs        
         if stemmer=='P':
             if measure=='Produit Scalaire':
                 produit = self.produit_scalaire(df_freqs_poids_porter,self.qry_set[query],'P')[1].sort_values(by='Poid',ascending=False).reset_index(drop=True).head(10)
-                produit['Pertinent'] = produit['Document'].apply(lambda x: 'Oui' if x in self.rel_set[query] else 'Non')
+                try:
+                    produit['Pertinent']= produit['Document'].apply(lambda x: 'Oui' if x in self.rel_set[query] else 'Non')
+                except:
+                    produit['Pertinent']= 'Non'
                 produit['Precision'] = 0.0
                 produit['Rappel'] = 0.0
                 produit['F-measure'] = 0.0
                 c=0
-                p=produit['Pertinent'].value_counts()['Oui']
+                try:
+                    p=produit['Pertinent'].value_counts()['Oui']
+                except:
+                    p=0
                 for i in range (0,10):
-                    if produit['Pertinent'][i] == 'Oui':
+                    if produit['Pertinent'].iloc[i] == 'Oui':
                         c+=1
-                    produit['Precision'][i] = c/(i+1)
-                    produit['Rappel'][i] = c/p
-                    produit['F-measure'][i] = 2*produit['Precision'][i]*produit['Rappel'][i]/(produit['Precision'][i]+produit['Rappel'][i])
+                    produit['Precision'].iloc[i] = c/(i+1)
+                    try:
+                        produit['Rappel'].iloc[i] = c/p
+                    except:
+                        produit['Rappel'].iloc[i] = 0
+                    produit['F-measure'].iloc[i] = 2*produit['Precision'].iloc[i]*produit['Rappel'].iloc[i]/(produit['Precision'].iloc[i]+produit['Rappel'].iloc[i])
                 produit['Precision_Interpolée'] = 0.0
                 produit['Rappel_Interpolée'] = 0.0
                 produit['F-measure_Interpolée'] = 0.0
                 for i in range (0,10):
-                    produit['Rappel_Interpolée'][i]=i/10
-                    cos= produit[produit['Rappel_Interpolée'][i] <= produit['Rappel']]
+                    produit['Rappel_Interpolée'].iloc[i]=i/10
+                    cos= produit[produit['Rappel_Interpolée'].iloc[i] <= produit['Rappel']]
                     if cos.empty:
-                        produit['Precision_Interpolée'][i]=0
+                        produit['Precision_Interpolée'].iloc[i]=0
                     else:
-                        produit['Precision_Interpolée'][i]=cos['Precision'].max()
-                    produit['F-measure_Interpolée'][i]=2*produit['Precision_Interpolée'][i]*produit['Rappel_Interpolée'][i]/(produit['Precision_Interpolée'][i]+produit['Rappel_Interpolée'][i])
+                        produit['Precision_Interpolée'].iloc[i]=cos['Precision'].max()
+                    produit['F-measure_Interpolée'].iloc[i]=2*produit['Precision_Interpolée'].iloc[i]*produit['Rappel_Interpolée'].iloc[i]/(produit['Precision_Interpolée'].iloc[i]+produit['Rappel_Interpolée'].iloc[i])
                     
                 return produit
             elif measure == 'Cosine':
                 cosine = self.Cosine(df_freqs_poids_porter,self.qry_set[query],'P').head(10)
-                cosine['Pertinent'] = cosine['Document'].apply(lambda x: 'Oui' if x in self.rel_set[query] else 'Non')
+                try:
+                    cosine['Pertinent'] = cosine['Document'].apply(lambda x: 'Oui' if x in self.rel_set[query] else 'Non')
+                except:
+                    cosine['Pertinent'] = 'Non'
                 cosine['Precision'] = 0.0
                 cosine['Rappel'] = 0.0
                 cosine['F-measure'] = 0.0
                 c=0
-                p=cosine['Pertinent'].value_counts()['Oui']
+                try:
+                    p=cosine['Pertinent'].value_counts()['Oui']
+                except:
+                    p=0
                 for i in range (0,10):
-                    if cosine['Pertinent'][i] == 'Oui':
+                    if cosine['Pertinent'].iloc[i] == 'Oui':
                         c+=1
-                    cosine['Precision'][i] = c/(i+1)
-                    cosine['Rappel'][i] = c/p
-                    cosine['F-measure'][i] = 2*cosine['Precision'][i]*cosine['Rappel'][i]/(cosine['Precision'][i]+cosine['Rappel'][i])
+                    cosine['Precision'].iloc[i] = c/(i+1)
+                    try:
+                        cosine['Rappel'].iloc[i] = c/p
+                    except:
+                        cosine['Rappel'].iloc[i] = 0
+                    cosine['F-measure'].iloc[i] = 2*cosine['Precision'].iloc[i]*cosine['Rappel'].iloc[i]/(cosine['Precision'].iloc[i]+cosine['Rappel'].iloc[i])
                 cosine['Precision_Interpolée'] = 0.0
                 cosine['Rappel_Interpolée'] = 0.0
                 cosine['F-measure_Interpolée'] = 0.0
                 for i in range (0,10):
-                    cosine['Rappel_Interpolée'][i]=i/10
-                    cos= cosine[cosine['Rappel_Interpolée'][i] <= cosine['Rappel']]
+                    cosine['Rappel_Interpolée'].iloc[i]=i/10
+                    cos= cosine[cosine['Rappel_Interpolée'].iloc[i] <= cosine['Rappel']]
                     if cos.empty:
-                        cosine['Precision_Interpolée'][i]=0
+                        cosine['Precision_Interpolée'].iloc[i]=0
                     else:
-                        cosine['Precision_Interpolée'][i]=cos['Precision'].max()
-                    cosine['F-measure_Interpolée'][i]=2*cosine['Precision_Interpolée'][i]*cosine['Rappel_Interpolée'][i]/(cosine['Precision_Interpolée'][i]+cosine['Rappel_Interpolée'][i])
+                        cosine['Precision_Interpolée'].iloc[i]=cos['Precision'].max()
+                    cosine['F-measure_Interpolée'].iloc[i]=2*cosine['Precision_Interpolée'].iloc[i]*cosine['Rappel_Interpolée'].iloc[i]/(cosine['Precision_Interpolée'].iloc[i]+cosine['Rappel_Interpolée'].iloc[i])
                 return cosine
             elif measure == 'Jaccard':
                 jaccard = self.Jaccard(df_freqs_poids_porter,self.qry_set[query],'P').head(10)
-                jaccard['Pertinent'] = jaccard['Document'].apply(lambda x: 'Oui' if x in self.rel_set[query] else 'Non')
+                try:
+                    jaccard['Pertinent'] = jaccard['Document'].apply(lambda x: 'Oui' if x in self.rel_set[query] else 'Non')
+                except:
+                    jaccard['Pertinent'] = 'Non'
                 jaccard['Precision'] = 0.0
                 jaccard['Rappel'] = 0.0
                 jaccard['F-measure'] = 0.0
                 c=0
-                p=jaccard['Pertinent'].value_counts()['Oui']
+                try:
+                    p=jaccard['Pertinent'].value_counts()['Oui']
+                except:
+                    p=0
                 for i in range (0,10):
-                    if jaccard['Pertinent'][i] == 'Oui':
+                    if jaccard['Pertinent'].iloc[i] == 'Oui':
                         c+=1
-                    jaccard['Precision'][i] = c/(i+1)
-                    jaccard['Rappel'][i] = c/p
-                    jaccard['F-measure'][i] = 2*jaccard['Precision'][i]*jaccard['Rappel'][i]/(jaccard['Precision'][i]+jaccard['Rappel'][i])
+                    jaccard['Precision'].iloc[i] = c/(i+1)
+                    try:
+                        jaccard['Rappel'].iloc[i] = c/p
+                    except:
+                        jaccard['Rappel'].iloc[i] = 0
+                    jaccard['F-measure'].iloc[i] = 2*jaccard['Precision'].iloc[i]*jaccard['Rappel'].iloc[i]/(jaccard['Precision'].iloc[i]+jaccard['Rappel'].iloc[i])
                 jaccard['Precision_Interpolée'] = 0.0
                 jaccard['Rappel_Interpolée'] = 0.0
                 jaccard['F-measure_Interpolée'] = 0.0
                 for i in range (0,10):
-                    jaccard['Rappel_Interpolée'][i]=i/10
-                    jac= jaccard[jaccard['Rappel_Interpolée'][i] <= jaccard['Rappel']]
+                    jaccard['Rappel_Interpolée'].iloc[i]=i/10
+                    jac= jaccard[jaccard['Rappel_Interpolée'].iloc[i] <= jaccard['Rappel']]
                     if jac.empty:
-                        jaccard['Precision_Interpolée'][i]=0
+                        jaccard['Precision_Interpolée'].iloc[i]=0
                     else:
-                        jaccard['Precision_Interpolée'][i]=jac['Precision'].max()
-                    jaccard['F-measure_Interpolée'][i]=2*jaccard['Precision_Interpolée'][i]*jaccard['Rappel_Interpolée'][i]/(jaccard['Precision_Interpolée'][i]+jaccard['Rappel_Interpolée'][i])
+                        jaccard['Precision_Interpolée'].iloc[i]=jac['Precision'].max()
+                    jaccard['F-measure_Interpolée'].iloc[i]=2*jaccard['Precision_Interpolée'].iloc[i]*jaccard['Rappel_Interpolée'].iloc[i]/(jaccard['Precision_Interpolée'].iloc[i]+jaccard['Rappel_Interpolée'].iloc[i])
                 return jaccard
             elif measure== 'BM25':
                 bm25 = self.BM25(df_freqs_poids_porter,self.qry_set[query],'P').head(10)
-                bm25['Pertinent'] = bm25['Document'].apply(lambda x: 'Oui' if x in self.rel_set[query] else 'Non')
+                try:
+                    bm25['Pertinent'] = bm25['Document'].apply(lambda x: 'Oui' if x in self.rel_set[query] else 'Non')
+                except:
+                    bm25['Pertinent'] = 'Non'
                 bm25['Precision'] = 0.0
                 bm25['Rappel'] = 0.0
                 bm25['F-measure'] = 0.0
                 c=0
-                p=bm25['Pertinent'].value_counts()['Oui']
+                try:
+                    p=bm25['Pertinent'].value_counts()['Oui']
+                except:
+                    p=0
                 for i in range (0,10):
-                    if bm25['Pertinent'][i] == 'Oui':
+                    if bm25['Pertinent'].iloc[i] == 'Oui':
                         c+=1
-                    bm25['Precision'][i] = c/(i+1)
-                    bm25['Rappel'][i] = c/p
-                    bm25['F-measure'][i] = 2*bm25['Precision'][i]*bm25['Rappel'][i]/(bm25['Precision'][i]+bm25['Rappel'][i])
+                    bm25['Precision'].iloc[i] = c/(i+1)
+                    try:
+                        bm25['Rappel'].iloc[i] = c/p
+                    except:
+                        bm25['Rappel'].iloc[i] = 0
+                    bm25['F-measure'].iloc[i] = 2*bm25['Precision'].iloc[i]*bm25['Rappel'].iloc[i]/(bm25['Precision'].iloc[i]+bm25['Rappel'].iloc[i])
                 bm25['Precision_Interpolée'] = 0.0
                 bm25['Rappel_Interpolée'] = 0.0
                 bm25['F-measure_Interpolée'] = 0.0
                 for i in range (0,10):
-                    bm25['Rappel_Interpolée'][i]=i/10
-                    bm= bm25[bm25['Rappel_Interpolée'][i] <= bm25['Rappel']]
+                    bm25['Rappel_Interpolée'].iloc[i]=i/10
+                    bm= bm25[bm25['Rappel_Interpolée'].iloc[i] <= bm25['Rappel']]
                     if bm.empty:
-                        bm25['Precision_Interpolée'][i]=0
+                        bm25['Precision_Interpolée'].iloc[i]=0
                     else:
-                        bm25['Precision_Interpolée'][i]=bm['Precision'].max()
-                    bm25['F-measure_Interpolée'][i]=2*bm25['Precision_Interpolée'][i]*bm25['Rappel_Interpolée'][i]/(bm25['Precision_Interpolée'][i]+bm25['Rappel_Interpolée'][i])
+                        bm25['Precision_Interpolée'].iloc[i]=bm['Precision'].max()
+                    bm25['F-measure_Interpolée'].iloc[i]=2*bm25['Precision_Interpolée'].iloc[i]*bm25['Rappel_Interpolée'].iloc[i]/(bm25['Precision_Interpolée'].iloc[i]+bm25['Rappel_Interpolée'].iloc[i])
                 return bm25
             else :
                 print('Erreur de mesure')
         elif stemmer=='L':
             if measure=='Produit Scalaire':
                 produit = self.produit_scalaire(df_freqs_poids_lan,self.qry_set[query],'L')[1].sort_values(by='Poid',ascending=False).reset_index(drop=True).head(10)
-                produit['Pertinent'] = produit['Document'].apply(lambda x: 'Oui' if x in self.rel_set[query] else 'Non')
+                try:
+                    produit['Pertinent'] = produit['Document'].apply(lambda x: 'Oui' if x in self.rel_set[query] else 'Non')
+                except:
+                    produit['Pertinent'] = 'Non'
                 produit['Precision'] = 0.0
                 produit['Rappel'] = 0.0
                 produit['F-measure'] = 0.0
                 c=0
-                p=produit['Pertinent'].value_counts()['Oui']
+                try:
+                    p=produit['Pertinent'].value_counts()['Oui']
+                except:
+                    p=0
                 for i in range (0,10):
-                    if produit['Pertinent'][i] == 'Oui':
+                    if produit['Pertinent'].iloc[i] == 'Oui':
                         c+=1
-                    produit['Precision'][i] = c/(i+1)
-                    produit['Rappel'][i] = c/p
-                    produit['F-measure'][i] = 2*produit['Precision'][i]*produit['Rappel'][i]/(produit['Precision'][i]+produit['Rappel'][i])
+                    produit['Precision'].iloc[i] = c/(i+1)
+                    produit['Rappel'].iloc[i] = c/p
+                    produit['F-measure'].iloc[i] = 2*produit['Precision'].iloc[i]*produit['Rappel'].iloc[i]/(produit['Precision'].iloc[i]+produit['Rappel'].iloc[i])
                 produit['Precision_Interpolée'] = 0.0
                 produit['Rappel_Interpolée'] = 0.0
                 produit['F-measure_Interpolée'] = 0.0
                 for i in range (0,10):
-                    produit['Rappel_Interpolée'][i]=i/10
-                    cos= produit[produit['Rappel_Interpolée'][i] <= produit['Rappel']]
+                    produit['Rappel_Interpolée'].iloc[i]=i/10
+                    cos= produit[produit['Rappel_Interpolée'].iloc[i] <= produit['Rappel']]
                     if cos.empty:
-                        produit['Precision_Interpolée'][i]=0
+                        produit['Precision_Interpolée'].iloc[i]=0
                     else:
-                        produit['Precision_Interpolée'][i]=cos['Precision'].max()
-                    produit['F-measure_Interpolée'][i]=2*produit['Precision_Interpolée'][i]*produit['Rappel_Interpolée'][i]/(produit['Precision_Interpolée'][i]+produit['Rappel_Interpolée'][i])
+                        produit['Precision_Interpolée'].iloc[i]=cos['Precision'].max()
+                    produit['F-measure_Interpolée'].iloc[i]=2*produit['Precision_Interpolée'].iloc[i]*produit['Rappel_Interpolée'].iloc[i]/(produit['Precision_Interpolée'].iloc[i]+produit['Rappel_Interpolée'].iloc[i])
                     return produit
             elif measure=='Cosine':
                 cosine = self.Cosine(df_freqs_poids_lan,self.qry_set[query],'L').head(10)
-                cosine['Pertinent'] = cosine['Document'].apply(lambda x: 'Oui' if x in self.rel_set[query] else 'Non')
+                try:
+                    cosine['Pertinent'] = cosine['Document'].apply(lambda x: 'Oui' if x in self.rel_set[query] else 'Non')
+                except:
+                    cosine['Pertinent'] = 'Non'
                 cosine['Precision'] = 0.0
                 cosine['Rappel'] = 0.0
                 cosine['F-measure'] = 0.0
                 c=0
-                p=cosine['Pertinent'].value_counts()['Oui']
+                try:
+                    p=cosine['Pertinent'].value_counts()['Oui']
+                except:
+                    p=0
                 for i in range (0,10):
-                    if cosine['Pertinent'][i] == 'Oui':
+                    if cosine['Pertinent'].iloc[i] == 'Oui':
                         c+=1
-                    cosine['Precision'][i] = c/(i+1)
-                    cosine['Rappel'][i] = c/p
-                    cosine['F-measure'][i] = 2*cosine['Precision'][i]*cosine['Rappel'][i]/(cosine['Precision'][i]+cosine['Rappel'][i])
+                    cosine['Precision'].iloc[i] = c/(i+1)
+                    try:
+                        cosine['Rappel'].iloc[i] = c/p
+                    except:
+                        cosine['Rappel'].iloc[i] = 0
+                    cosine['F-measure'].iloc[i] = 2*cosine['Precision'].iloc[i]*cosine['Rappel'].iloc[i]/(cosine['Precision'].iloc[i]+cosine['Rappel'].iloc[i])
                 cosine['Precision_Interpolée'] = 0.0
                 cosine['Rappel_Interpolée'] = 0.0
                 cosine['F-measure_Interpolée'] = 0.0
                 for i in range (0,10):
-                    cosine['Rappel_Interpolée'][i]=i/10
-                    cos= cosine[cosine['Rappel_Interpolée'][i] <= cosine['Rappel']]
+                    cosine['Rappel_Interpolée'].iloc[i]=i/10
+                    cos= cosine[cosine['Rappel_Interpolée'].iloc[i] <= cosine['Rappel']]
                     if cos.empty:
-                        cosine['Precision_Interpolée'][i]=0
+                        cosine['Precision_Interpolée'].iloc[i]=0
                     else:
-                        cosine['Precision_Interpolée'][i]=cos['Precision'].max()
-                    cosine['F-measure_Interpolée'][i]=2*cosine['Precision_Interpolée'][i]*cosine['Rappel_Interpolée'][i]/(cosine['Precision_Interpolée'][i]+cosine['Rappel_Interpolée'][i])
+                        cosine['Precision_Interpolée'].iloc[i]=cos['Precision'].max()
+                    cosine['F-measure_Interpolée'].iloc[i]=2*cosine['Precision_Interpolée'].iloc[i]*cosine['Rappel_Interpolée'].iloc[i]/(cosine['Precision_Interpolée'].iloc[i]+cosine['Rappel_Interpolée'].iloc[i])
                 return cosine
             elif measure == 'Jaccard':
                 jaccard = self.Jaccard(df_freqs_poids_lan,self.qry_set[query],'L').head(10)
-                jaccard['Pertinent'] = jaccard['Document'].apply(lambda x: 'Oui' if x in self.rel_set[query] else 'Non')
+                try:
+                    jaccard['Pertinent'] = jaccard['Document'].apply(lambda x: 'Oui' if x in self.rel_set[query] else 'Non')
+                except:
+                    jaccard['Pertinent'] = 'Non'
                 jaccard['Precision'] = 0.0
                 jaccard['Rappel'] = 0.0
                 jaccard['F-measure'] = 0.0
                 c=0
-                p=jaccard['Pertinent'].value_counts()['Oui']
+                try:
+                    p=jaccard['Pertinent'].value_counts()['Oui']
+                except:
+                    p=0
                 for i in range (0,10):
-                    if jaccard['Pertinent'][i] == 'Oui':
+                    if jaccard['Pertinent'].iloc[i] == 'Oui':
                         c+=1
-                    jaccard['Precision'][i] = c/(i+1)
-                    jaccard['Rappel'][i] = c/p
-                    jaccard['F-measure'][i] = 2*jaccard['Precision'][i]*jaccard['Rappel'][i]/(jaccard['Precision'][i]+jaccard['Rappel'][i])
+                    jaccard['Precision'].iloc[i] = c/(i+1)
+                    try:
+                        jaccard['Rappel'].iloc[i] = c/p
+                    except:
+                        jaccard['Rappel'].iloc[i] = 0
+                    jaccard['F-measure'].iloc[i] = 2*jaccard['Precision'].iloc[i]*jaccard['Rappel'].iloc[i]/(jaccard['Precision'].iloc[i]+jaccard['Rappel'].iloc[i])
                 jaccard['Precision_Interpolée'] = 0.0
                 jaccard['Rappel_Interpolée'] = 0.0
                 jaccard['F-measure_Interpolée'] = 0.0
                 for i in range (0,10):
                     jaccard['Rappel_Interpolée'][i]=i/10
-                    jac= jaccard[jaccard['Rappel_Interpolée'][i] <= jaccard['Rappel']]
+                    jac= jaccard[jaccard['Rappel_Interpolée'].iloc[i] <= jaccard['Rappel']]
                     if jac.empty:
-                        jaccard['Precision_Interpolée'][i]=0
+                        jaccard['Precision_Interpolée'].iloc[i]=0
                     else:
-                        jaccard['Precision_Interpolée'][i]=jac['Precision'].max()
-                    jaccard['F-measure_Interpolée'][i]=2*jaccard['Precision_Interpolée'][i]*jaccard['Rappel_Interpolée'][i]/(jaccard['Precision_Interpolée'][i]+jaccard['Rappel_Interpolée'][i])
+                        jaccard['Precision_Interpolée'].iloc[i]=jac['Precision'].max()
+                    jaccard['F-measure_Interpolée'].iloc[i]=2*jaccard['Precision_Interpolée'].iloc[i]*jaccard['Rappel_Interpolée'].iloc[i]/(jaccard['Precision_Interpolée'].iloc[i]+jaccard['Rappel_Interpolée'].iloc[i])
                 return jaccard
             elif measure== 'BM25':
                 bm25 = self.BM25(df_freqs_poids_lan,self.qry_set[query],'L').head(10)
-                bm25['Pertinent'] = bm25['Document'].apply(lambda x: 'Oui' if x in self.rel_set[query] else 'Non')
+                try:
+                    bm25['Pertinent'] = bm25['Document'].apply(lambda x: 'Oui' if x in self.rel_set[query] else 'Non')
+                except:
+                    bm25['Pertinent'] = 'Non'
                 bm25['Precision'] = 0.0
                 bm25['Rappel'] = 0.0
                 bm25['F-measure'] = 0.0
                 c=0
-                p=bm25['Pertinent'].value_counts()['Oui']
+                try:
+                    p=bm25['Pertinent'].value_counts()['Oui']
+                except:
+                    p=0
                 for i in range (0,10):
-                    if bm25['Pertinent'][i] == 'Oui':
+                    if bm25['Pertinent'].iloc[i] == 'Oui':
                         c+=1
-                    bm25['Precision'][i] = c/(i+1)
-                    bm25['Rappel'][i] = c/p
-                    bm25['F-measure'][i] = 2*bm25['Precision'][i]*bm25['Rappel'][i]/(bm25['Precision'][i]+bm25['Rappel'][i])
+                    bm25['Precision'].iloc[i] = c/(i+1)
+                    try:
+                        bm25['Rappel'].iloc[i] = c/p
+                    except:
+                        bm25['Rappel'].iloc[i] = 0
+                    bm25['F-measure'].iloc[i] = 2*bm25['Precision'].iloc[i]*bm25['Rappel'].iloc[i]/(bm25['Precision'].iloc[i]+bm25['Rappel'].iloc[i])
                 bm25['Precision_Interpolée'] = 0.0
                 bm25['Rappel_Interpolée'] = 0.0
                 bm25['F-measure_Interpolée'] = 0.0
                 for i in range (0,10):
-                    bm25['Rappel_Interpolée'][i]=i/10
-                    bm= bm25[bm25['Rappel_Interpolée'][i] <= bm25['Rappel']]
+                    bm25['Rappel_Interpolée'].iloc[i]=i/10
+                    bm= bm25[bm25['Rappel_Interpolée'].iloc[i] <= bm25['Rappel']]
                     if bm.empty:
-                        bm25['Precision_Interpolée'][i]=0
+                        bm25['Precision_Interpolée'].iloc[i]=0
                     else:
-                        bm25['Precision_Interpolée'][i]=bm['Precision'].max()
-                    bm25['F-measure_Interpolée'][i]=2*bm25['Precision_Interpolée'][i]*bm25['Rappel_Interpolée'][i]/(bm25['Precision_Interpolée'][i]+bm25['Rappel_Interpolée'][i])
+                        bm25['Precision_Interpolée'].iloc[i]=bm['Precision'].max()
+                    bm25['F-measure_Interpolée'].iloc[i]=2*bm25['Precision_Interpolée'].iloc[i]*bm25['Rappel_Interpolée'].iloc[i]/(bm25['Precision_Interpolée'].iloc[i]+bm25['Rappel_Interpolée'].iloc[i])
                 return bm25
             else : 
                 print('Erreur de mesure')
         else : 
             print('Erreur de stemmer')
-
+    
     def train_test_split(self, df, test_size):
             # make sure it is a float and get the number of instances in the test set
             if isinstance(test_size, float):
@@ -660,3 +753,34 @@ class MachineLearning():
             train_df = df.drop(test_indices)
             
             return train_df.iloc[:,:-1], test_df.iloc[:,:-1], train_df.iloc[:,-1], test_df.iloc[:,-1]
+
+    def boolean(self, query,stemmer):
+        stop_words = ['is', 'a', 'for', 'the', 'of']
+        # args = parse_args()
+        ir = IRSystem(self.doc_set, stop_words=stop_words)    
+        start = timeit.default_timer()
+        results = ir.process_query(query)
+        stop = timeit.default_timer()
+        if results is not None:
+            print ('Processing time: {:.5} secs'.format(stop - start))
+            # print('\nDoc IDS: ')
+            # print(results)    
+            if stemmer == 'P':
+                q = self.ExpReg.tokenize(query)
+                q = [self.Porter.stem(terme) for terme in q if terme.lower() not in self.MotsVides]
+                return self.df_freqs_poids_porter[(self.df_freqs_poids_porter['Terme'].isin(q)) & (self.df_freqs_poids_porter['Document'].isin(results))]
+            elif stemmer == 'L':
+                q = self.ExpReg.tokenize(query)
+                q = [self.Lancaster.stem(terme) for terme in q if terme.lower() not in self.MotsVides]
+                return self.df_freqs_poids_lan[(self.df_freqs_poids_lan['Terme'].isin(q)) & (self.df_freqs_poids_lan['Document'].isin(results))]
+
+    def freq_inverse(self, df,query,stemmer):
+        words = np.unique(self.ExpReg.tokenize(query))
+        docs = df.Document.unique()
+        if stemmer=='P':
+            TermesSansMotsVides = [self.Porter.stem(terme) for terme in words if terme.lower() not in self.MotsVides]
+        elif stemmer=='L':
+            TermesSansMotsVides = [self.Lancaster.stem(terme) for terme in words if terme.lower() not in self.MotsVides]
+        results = df[(df['Terme'].isin(TermesSansMotsVides)) & (df['Frequence'] != 0)]
+        #results = results.drop('Terme',axis=1).reset_index(drop=True)
+        return results
