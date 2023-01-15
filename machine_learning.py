@@ -44,8 +44,8 @@ class MachineLearning():
             elif l.startswith(".T") or l.startswith(".W"):
                 doc_text += l.strip()[3:] + " "
 
-        print(f"Number of documents = {len(doc_set)}")
-        print(doc_set["1"]) 
+        # print(f"Number of documents = {len(doc_set)}")
+        # print(doc_set["1"]) 
         
         
         #_____________ Read data from CISI.QRY file and store in dictinary ________________
@@ -65,8 +65,8 @@ class MachineLearning():
                 qry_set[qry_id] = l.strip()[3:]
                 qry_id = ""
 
-        print(f"\n\nNumber of queries = {len(qry_set)}")    
-        print(qry_set["1"]) 
+        # print(f"\n\nNumber of queries = {len(qry_set)}")    
+        # print(qry_set["1"]) 
         
         
         #_____________ Read data from CISI.REL file and store in dictinary ________________
@@ -83,8 +83,8 @@ class MachineLearning():
                     rel_set[qry_id] = []
                     rel_set[qry_id].append(doc_id)
 
-        print(f"\n\nNumber of mappings = {len(rel_set)}")
-        print(rel_set["1"]) 
+        # print(f"\n\nNumber of mappings = {len(rel_set)}")
+        # print(rel_set["1"]) 
         
         doc_set = {int(id):doc for (id,doc) in doc_set.items()}
         qry_set = {int(id):qry for (id,qry) in qry_set.items()}
