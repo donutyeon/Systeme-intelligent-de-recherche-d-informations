@@ -587,12 +587,12 @@ class MachineLearning():
                         l = [a not in self.rel_set[query] for a in co[co['Mesure Cosine']!=0]['Document'] ]
                         matrix[1][0] = l.count(True)
                     except:
-                        matrix[1][0] = len(c[c['Mesure Cosine']!=0]['Document'])
+                        matrix[1][0] = len(co[co['Mesure Cosine']!=0]['Document'])
                     try:
                         l = [a not in self.rel_set[query] for a in co[co['Mesure Cosine']==0]['Document'] ]
                         matrix[1][1] = l.count(True)
                     except:
-                        matrix[1][1] = len(c[c['Mesure Cosine']==0]['Document'])
+                        matrix[1][1] = len(co[co['Mesure Cosine']==0]['Document'])
                 return cosine , matrix
             elif measure == 'Jaccard':
                 jr = self.Jaccard(df_freqs_poids_porter,self.qry_set[query],'P')
@@ -644,7 +644,7 @@ class MachineLearning():
                     l = [a not in self.rel_set[query] for a in jr[jr['Mesure Jaccard']!=0]['Document'] ]
                     matrix[1][0] = l.count(True)
                 except:
-                    matrix[1][0] = len(c[c['Mesure Jaccard']!=0]['Document'])
+                    matrix[1][0] = len(jr[jr['Mesure Jaccard']!=0]['Document'])
                 try:
                     l = [a not in self.rel_set[query] for a in jr[jr['Mesure Jaccard']==0]['Document'] ]
                     matrix[1][1] = l.count(True)
@@ -701,7 +701,7 @@ class MachineLearning():
                     l = [a not in self.rel_set[query] for a in bmm[bmm['Probabilite BM25']!=0]['Document'] ]
                     matrix[1][0] = l.count(True)
                 except:
-                    matrix[1][0] = len(c[c['Probabilite BM25']!=0]['Document'])
+                    matrix[1][0] = len(bmm[bmm['Probabilite BM25']!=0]['Document'])
                 try:
                     l = [a not in self.rel_set[query] for a in bmm[bmm['Probabilite BM25']==0]['Document'] ]
                     matrix[1][1] = l.count(True)
@@ -816,12 +816,12 @@ class MachineLearning():
                     l = [a not in self.rel_set[query] for a in co[co['Mesure Cosine']!=0]['Document'] ]
                     matrix[1][0] = l.count(True)
                 except:
-                    matrix[1][0] = len(c[c['Mesure Cosine']!=0]['Document'])
+                    matrix[1][0] = len(co[co['Mesure Cosine']!=0]['Document'])
                 try:
                     l = [a not in self.rel_set[query] for a in co[co['Mesure Cosine']==0]['Document'] ]
                     matrix[1][1] = l.count(True)
                 except:
-                    matrix[1][1] = len(c[c['Mesure Cosine']==0]['Document'])
+                    matrix[1][1] = len(co[co['Mesure Cosine']==0]['Document'])
                 return cosine , matrix
             elif measure == 'Jaccard':
                 jr = self.Jaccard(df_freqs_poids_lan,self.qry_set[query],'L')
@@ -873,7 +873,7 @@ class MachineLearning():
                     l = [a not in self.rel_set[query] for a in jr[jr['Mesure Jaccard']!=0]['Document'] ]
                     matrix[1][0] = l.count(True)
                 except:
-                    matrix[1][0] = len(c[c['Mesure Jaccard']!=0]['Document'])
+                    matrix[1][0] = len(jr[jr['Mesure Jaccard']!=0]['Document'])
                 try:
                     l = [a not in self.rel_set[query] for a in jr[jr['Mesure Jaccard']==0]['Document'] ]
                     matrix[1][1] = l.count(True)
@@ -930,7 +930,7 @@ class MachineLearning():
                     l = [a not in self.rel_set[query] for a in bmm[bmm['Probabilite BM25']!=0]['Document'] ]
                     matrix[1][0] = l.count(True)
                 except:
-                    matrix[1][0] = len(c[c['Probabilite BM25']!=0]['Document'])
+                    matrix[1][0] = len(bmm[bmm['Probabilite BM25']!=0]['Document'])
                 try:
                     l = [a not in self.rel_set[query] for a in bmm[bmm['Probabilite BM25']==0]['Document'] ]
                     matrix[1][1] = l.count(True)
